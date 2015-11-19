@@ -1,1 +1,5 @@
 This repository holds the scripts that the IRC bot we use in #Meridian59 on esper.net runs.
+
+The file currentscripts.txt contains the .tcl files that we are using in addition to the defualt eggdrop scripts.
+
+Those actual scripts are incluide with their confiuration options.
