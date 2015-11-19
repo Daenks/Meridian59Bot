@@ -1,0 +1,10 @@
+eggdrop*
+*.db
+*.chan*
+*.user*
+pid.*
+weed
+*.so
+*.log.*
+/.project
+bs_data*

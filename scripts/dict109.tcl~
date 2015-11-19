@@ -1,0 +1,1157 @@
+#         Script : DiCT v1.10 by David Proper (Dr. Nibble [DrN])
+#                  Copyright 1998-2001 Radical Computer Systems
+#
+#       Original
+#       Platform : Linux 2.0.33
+#                  Eggdrop v1.2.0+bel1
+#       Current
+#      Platforms : Linux 2.2.16
+#                  Eggdrop v1.6.2
+#            And : SunOS 5.8
+#                  Eggdrop v1.5.4
+#
+#    Description : DiCT will allow your Eggdrop to have an OP controlled
+#                  dictionary, allow them to define and recall words in
+#                  it's own database. Multiple dictionary function.
+#                  Comes with 7 dictionaries.
+#
+#       Features : Open definition adding or closed (OP only)
+#                  Single dictionary file or seperate ones for each channel
+#                  Multiple binds to accomidant trigger words from various
+#                     other bots/scripts.
+#                  Saves nick of person who added definition
+#                  Saves date/time of when def was entered
+#                  Able to use multiple dictionary files
+#
+#        History : 03/29/1998 - First Release
+#                  09/21/2000 - Added switch to turn off whoset display
+#                             o Added file locking
+#                  01/07/2001 - Fixed "timeout" error message (so i thought)
+#                             o Fixed defining null
+#            v1.07 03/16/2001 - Added multi-dictionary lookup
+#                             o Added !what double bind to !ask
+#                             o Added !whatis double bind to !ask
+#                             o Added ?? double bind to !ask
+#                             o Added !whodef to see who defined a word.
+#                             o Added == double bind to !define
+#                             o Fixed file locking not reseting the lock
+#                                after undefining a word.
+#                             o Added alternate dictionary ability to all
+#                                commands.
+#                             o Hopfully fixed "bug" where it would allow
+#                                lookups using wildcards. Don't know why
+#                                that's bad?  !ask *  that's why. :)
+#                             o Fixed DCC and MSG commands. They should now
+#                                actually work. :)
+#                             o Modified it so it wont show "not found"
+#                                footer when using the word? lookup.
+#                             o Added word? lookup
+# (DrN) script?
+# <IsleBot>  script  = DiCT v1.07 by Dr. Nibble (DrN) -=:DrN:=-
+#
+#              v1.08 05/20/2001 Jerry rigged it so it wont mess up when
+#                                outputting controlled characters like ";} etc
+#                             o Can now use wildcards in the listdef command
+#                             o Fixed Who Set variable when defining via DCC.
+#                             o Added command to reset locking manually
+#
+#               v1.09 06/11/2001
+#                             o Fixed [cmdchar] proc not being found
+#                             o Finished rigging it for mulitple word
+#                               definitions.
+#                               EX: define  Perl_Programming will show as:
+#                               Perl Programming. Can use:
+#                               !ask Perl Programming   as well.
+#                             o Added: tell nick about word
+#                               Requested by Colly^@UnderNet
+#                               EX: tell DrN about script
+#                               Nick used needs to be on the channel.
+#                               Output can be in chan or msg.
+#                             o Added user-definable explain output.
+#                             o Most major output strings are now easily
+#                               user defineable. (Search for  format_ )
+#                             o Renamed most procs to prevent possible
+#                               conflicts with other scripts.
+#               v1.10   /  /2001
+#                             o Fixed displaying handle in DCC instead of IDX
+#                             o Fixed MSG 
+#                             o Fixed error in dcc listdef
+#
+#   Future Plans : Single def locking (Anyone want this?)
+#                  Bold/Reverse switch (Doubt this)
+#                  Some sort of dictionary sharing between bots.
+#                  Only activate on selected channels.
+#
+# Author Contact :     Email - DProper@stx.rr.com
+#                  Home Page - http://home.stx.rr.com/dproper
+#                        IRC - Primary Nick: DrN
+#                     UseNet - alt.irc.bots.eggdrop
+# Support Channels: #RCS @UnderNet.Org
+#                   #RCS @DALnet
+#                   #RCS @EFnet (Not sure if this will be perm or not)
+#                   #RCS @GalaxyNet (Not sure if this will be perm or not)
+#
+# New TCL releases are sent to the following sites as soon as they're released:
+#
+# FTP Site                   | Directory                     
+# ---------------------------+-------------------------------
+# ftp.chaotix.net            | /pub/RCS
+# ftp.eggheads.org           | Various
+# http://www.botcentral.net  | * Site has withdrawn support *
+# drn.realmweb.org           | /drn
+#
+#   Radical Computer Systems - http://www.chaotix.net:3000/rcs/
+# To subscribe to the RCS mailing list: mail majordomo@chaotix.net and in
+#  BODY of message, type  subscribe rcs-list
+#
+# Feel free to Email me any suggestions/bug reports/etc.
+# 
+# You are free to use this TCL/script as long as:
+#  1) You don't remove or change author credit
+#  2) You don't release it in modified form. (Only the original)
+# 
+# If you have a "too cool" modification, send it to me and it'll be
+# included in the official release. (With your credit)
+#
+# Commands Added:
+#  Where     F CMD       F CMD         F CMD        F CMD
+#  -------   - --------- - ----------- - ---------- - --------- - -------
+#  Public:   ? !define   o !undefine   - !explain   o !listdef  - !dicthelp
+#            o !dictlock o !dictunlock - !whodef    o !resetdict
+#     MSG:   - explain   o listdef     o define     o undefine  - dicthelp
+#            o dictlock  o dictunlock  - !whodef
+#     DCC:   o listdef   - explain     o define     o undefine  - dicthelp
+#            o dictlock  o dictunlock  - !whodef
+#
+#  Double Binds:
+#            - ask     = - explain   = - ??      = - what    = - !whatis
+#            ? add     = ? define    = ? learn   = ? ==
+#            o erase   = o undefine  = o forget  = o !!
+#
+#  Alternate lookup methods:
+#    word?
+#    tell nick about word
+# 
+#
+# A Special thanks goes out to the Alpha Team.. All one of them. :)
+#                  SNiPA - Thanks for helping me test the original version.
+#            Wanna join the alpha team for my scripts? EMail me.
+#
+
+# You can set the command charactor to "" to have ask, define, etc. But
+# I really don't recomend it. Any line that starts with a DiCT trigger
+# will go off... EX:
+# ask them where they are
+# explain to him what you are doing
+set cmdchar_ "!"
+set dict(ver) "v1.10.04"
+
+# With the alt dictionaries, this next set is most likly obsoleat...
+# But with my track record with this script, I'm gonna leave it just in case. :)
+set dictfile ".dict"
+
+set dict(control) 1
+
+# Set dict(chan) to 1 if you want a different dictionary file for each
+# channel. (DCC will use current console's channel)
+set dict(chan) 0
+
+# set this to 1 if you want it to display the time/date the definition was
+# entered.
+set dict(entered) 0
+
+# set this to 1 if you want it to display who set the definition.
+set dict(whoset) 1
+
+# Setting any format_* variable to "" will make DiCT use the original,
+# defualt message for that line.
+
+# Avaliable variables are:
+#  $word - Work being looked up
+#  $def  - Definition of the word
+#  $whoset - Who set the definition
+#  $whenset - Date/time the entry was added
+#  $nick and $chan.
+set dict(format_explain) {\026 $word \026 \002=\002 $def -=:$whoset:=- Entered $whenset}
+set dict(format_explain) {\026 $word \026 \002=\002 $def -=:$whoset:=-}
+#set dict(format_explain) {:::::: I Believe $word means $def ::::::}
+
+# $word $whoset $whenset $nick $chan
+set dict(format_whodef) {\026 $word \026 was defined by $whoset on $whenset}
+# The following formats can use the variables: $word $nick $chan
+set dict(format_defset) {Definition for "$word" has been stored.}
+set dict(format_defexist) {A definition for "$word" allready exists.}
+set dict(format_nodef) {Sorry, no definition set for "$word".}
+set dict(format_deldef) {Definition for "$word" has been removed.}
+
+# Useable variables: $listmatch $nick $chan
+set dict(format_listhead) {-=: Listing definitions I have in my database $listmatch:}
+# Useable variables: $defcount $nick $chan
+set dict(format_listfoot) {-=: End Of List. There were $defcount definitions found.}
+
+# Usable variables: $nick $chan
+set dict(format_timeout) {Error: File Locking Time Out}
+
+
+# [0/1] Set to 1 if you want to use the  tell nick about word  lookup
+set dict(usetell) 1
+# [0/1] If set to 1, will message them the definition. Anything else and
+#       it will display it to channel.
+set dict(tellmsg) 0
+
+
+#Format is:
+# Trigger_Name Path_To_Dict_file Dictionary description
+
+# Release settings
+set dictfiles {
+ {General  ~/eggdrop/.dict              General Database}
+ {Acro     ~/eggdrop/dict/dict.acro     Computer Acronyms}
+ {Glossary ~/eggdrop/dict/dict.gloss    Computer Glossary}
+ {Occult   ~/eggdrop/dict/dict.pagan    Occult Glossary}
+ {Pagan    ~/eggdrop/dict/dict.pgloss   Gods And Goddesses}
+ {Country  ~/eggdrop/dict/dict.country  Country Codes}
+ {AreaCode ~/eggdrop/dict/dict.areacode Telephone Area Codes}
+}
+
+set cmdchar_ "!"
+proc cmdchar { } {
+global cmdchar_
+return $cmdchar_
+}
+
+##### Trigger Binds for easy removal/addition/modification ###############
+
+##### Public
+bind pub - [cmdchar]dict pub_dict
+bind pub - [cmdchar]dicthelp pub_dicthelp
+bind pub o [cmdchar]dictlock pub_dictlock
+bind pub o [cmdchar]dictunlock pub_dictunlock
+bind pub - [cmdchar]whodef pub_whodef
+bind pub o [cmdchar]listdef pub_listdef
+bind pub - [cmdchar]resetdict pub_resetdict
+
+bind pub o [cmdchar]define pub_define
+bind pub o == pub_define
+bind pub o [cmdchar]add pub_define
+bind pub o [cmdchar]learn pub_define
+
+bind pub - [cmdchar]explain pub_explain
+bind pub - ?? pub_explain
+bind pub - [cmdchar]ask pub_explain
+bind pub - [cmdchar]what pub_explain
+bind pub - [cmdchar]whatis pub_explain
+
+bind pub o [cmdchar]undefine pub_undefine
+bind pub o [cmdchar]erase pub_undefine
+bind pub o [cmdchar]forget pub_undefine
+bind pub o !! pub_undefine
+
+##### Message
+bind msg - dict msg_dict
+bind msg - dicthelp msg_dicthelp
+bind msg - dictlock msg_dictlock
+bind msg - dictunlock msg_dictunlock
+bind msg - whodef msg_whodef
+
+bind msg o define msg_define
+bind msg o add msg_define
+bind msg o learn msg_define
+bind msg - explain msg_explain
+bind msg - ask msg_explain
+
+bind msg o undefine msg_undefine
+bind msg o erase msg_undefine
+bind msg o forget msg_undefine
+bind msg o listdef msg_listdef
+
+##### DCC
+bind dcc - dict dcc_dict
+bind dcc - dicthelp dcc_dicthelp
+bind dcc - dictlock dcc_dictlock
+bind dcc - dictunlock dcc_dictunlock
+bind dcc o listdef dcc_listdef
+
+bind dcc o define dcc_define
+bind dcc o add dcc_define
+bind dcc o learn dcc_define
+bind dcc - explain dcc_explain
+
+bind dcc - ask dcc_explain
+bind dcc - explain dcc_explain
+bind dcc o undefine dcc_undefine
+bind dcc o erase dcc_undefine
+bind dcc o forget dcc_undefine
+
+
+
+set dictFL 2
+set dictNF 1
+set dict(tellnick) ""
+
+proc dict_sendit {nick channel dirc txt} {
+ regsub -all {!PD!} $txt \. txt
+ regsub -all {!CO!} $txt \: txt
+ regsub -all {!SQ!} $txt \' txt
+ regsub -all {!QL!} $txt \; txt
+ regsub -all {!QT!} $txt \" txt
+ regsub -all {!LT!} $txt \< txt
+ regsub -all {!GT!} $txt \> txt
+ regsub -all {!LP!} $txt \( txt
+ regsub -all {!RP!} $txt \) txt
+ regsub -all {!LB!} $txt \{ txt
+ regsub -all {!RB!} $txt \} txt
+ regsub -all {!LF!} $txt \[ txt
+ regsub -all {!RF!} $txt \] txt
+ regsub -all {!SL!} $txt \\ txt
+
+ if {$dirc == "1"} { putserv "PRIVMSG $channel :$txt" }
+ if {$dirc == "2"} { putserv "PRIVMSG $nick :$txt" }
+ if {$dirc == "3"} { putserv "NOTICE $nick :$txt" }
+ if {$dirc == "4"} { putdcc $nick "$txt" }
+}
+proc dict_slasher {line} {
+                    regsub -all {\\} $line !SL! line
+                    regsub -all {\<} $line !LT! line
+                    regsub -all {\>} $line !GT! line
+                    regsub -all {\"} $line !QT! line
+                    regsub -all {\(} $line !LP! line
+                    regsub -all {\)} $line !RP! line
+                    regsub -all {\{} $line !LB! line
+                    regsub -all {\}} $line !RB! line
+                    regsub -all {\[} $line !LF! line
+                    regsub -all {\]} $line !RF! line
+                    regsub -all {\;} $line !QL! line
+                    regsub -all {\:} $line !CO! line
+                    regsub -all {\.} $line !PD! line
+  return $line
+}
+
+
+proc pub_dict {nick uhost handle channel args} {
+global dict
+dict_sendit $nick $channel 1 "DiCT $dict(ver) by David Proper (DrN)"
+} 
+
+proc msg_dict {nick uhost handle args} {
+global dict
+dict_sendit $nick $nick 2 "DiCT $dict(ver) by David Proper (DrN)"
+}
+
+proc dcc_dict {handle idx args} {
+global dict
+dict_sendit $idx $idx 4 "DiCT $dict(ver) by David Proper (DrN)"
+}
+
+
+proc dicthelp {nick channel dirc dire args} {
+global dict dictfiles
+set topic [string tolower [lindex $args 0]]
+if {([string length $topic]) < 3} {
+                                   dict_sendit $nick $channel $dirc "Use \002[cmdchar]DICTHELP help\002 to list avaliable topics." 
+                                   dict_sendit $nick $channel $dirc "Use \002[cmdchar]DICTHELP list\002 to list avaliable dictionaries." 
+                                  }
+switch [string tolower $topic] {
+ "status" {
+           if {($dict(control) == 0)} {set dicttemp unlocked} else {set dicttemp locked}
+           dict_sendit $nick $channel $dirc "Definition adding is currentlly $dicttemp."
+          }
+ "dictlock" {
+           dict_sendit $nick $channel $dirc "DICTLOCK - Syntax: dictlock"
+           dict_sendit $nick $channel $dirc "(OPs)    This command allows you to lock definition adding into OPs only mode."
+          }
+ "dictunlock" {
+           dict_sendit $nick $channel $dirc "DICTUNLOCK - Syntax: dictunlock"
+           dict_sendit $nick $channel $dirc "(OPs)    This command allows you to unlock definition adding to allow anyone to add to the dictionary"
+          }
+ "define" {
+           dict_sendit $nick $channel $dirc "DEFINE - Syntax: define <word> <defininition>"
+           dict_sendit $nick $channel $dirc "(OPs)    This command allows you to define words for the dictionary."
+          }
+ "undefine" {
+             dict_sendit $nick $channel $dirc "UNDEFINE - Syntax: undefine <word>"
+             dict_sendit $nick $channel $dirc "(OPs)      This command will delete the entry for <word> from the dictionary."
+             }
+ "explain" {
+            dict_sendit $nick $channel $dirc "EXPLAIN - Syntax: explain <word>"
+            dict_sendit $nick $channel $dirc "        This command will look in the dictionary and retrieve the entry for <word> (If one exists)"
+           }
+ "whodef" {
+            dict_sendit $nick $channel $dirc "WHODEF - Syntax: whodef <word>"
+            dict_sendit $nick $channel $dirc "        This command will look in the dictionary and retrieve who defined <word> and when."
+           }
+ "listdef" {
+            dict_sendit $nick $channel $dirc "LISTDEF - Syntax: listdef"
+            dict_sendit $nick $channel $dirc "        This command will list all the definitions currentlly in the dictionary file."
+           }
+ "alpha" {
+          dict_sendit $nick $channel $dirc "DiCT Alpha Team: SNiPA"
+         }
+ "resetdict" {
+          set dictFL 2
+          dict_sendit $nick $channel $dirc "Reset File Locking."
+         }
+
+ "ask" { dict_sendit $nick $channel $dirc "ASK - See 'explain'" }
+ "??" { dict_sendit $nick $channel $dirc "?? - See 'explain'" }
+ "what" { dict_sendit $nick $channel $dirc "what - See 'explain'" }
+ "whatis" { dict_sendit $nick $channel $dirc "whatis - See 'explain'" }
+ "add" { dict_sendit $nick $channel $dirc "ADD - See 'define'" }
+ "==" { dict_sendit $nick $channel $dirc "ADD - See 'define'" }
+ "erase" { dict_sendit $nick $channel $dirc "ERASE - See 'undefine'" }
+ "!!" { dict_sendit $nick $channel $dirc "ERASE - See 'undefine'" }
+ "help" {
+     dict_sendit $nick $channel $dirc "Help Topics Avaliable:"
+     dict_sendit $nick $channel $dirc "explain define undefine listdef add erase ask alpha"
+     dict_sendit $nick $channel $dirc "dictlock dictunlock status whodef ?? == !! list resetdict"
+    }
+ "list" {
+         set totaldict [llength $dictfiles]
+         set dictloop 0
+         dict_sendit $nick $channel $dirc "\26Name           \26 \26Description                \26"
+         #putserv "PRIVMSG $chan :--------------- -------------------------------"
+         while {$dictloop < $totaldict} {
+           set dl_data [lindex $dictfiles $dictloop]
+           set dl_trig [lindex $dl_data 0]
+           set dl_path [lindex $dl_data 1]
+           set dl_desc [lrange $dl_data 2 end]
+           dict_sendit $nick $channel $dirc "[format "%-15s" $dl_trig] $dl_desc"
+           incr dictloop
+                                        }
+         dict_sendit $nick $channel $dirc "\26 * \26 EX: [cmdchar]explain script -d Name"
+        }
+                             }
+}
+
+proc pub_dicthelp {nick uhost handle channel args} {
+global dict
+dict_sendit $nick $channel 1 "DiCT $dict(ver) by David Proper (DrN)"
+dicthelp $nick $channel 1 1 $args
+} 
+
+proc msg_dicthelp {nick uhost handle args} {
+global dict
+dict_sendit $nick $nick 2 "DiCT $dict(ver) by David Proper (DrN)"
+dicthelp $nick $nick 2 2 $args
+}
+
+proc dcc_dicthelp {handle idx args} {
+global dict
+dict_sendit $idx $idx 4 "DiCT $dict(ver) by David Proper (DrN)"
+dicthelp $idx $idx 4 4 $args
+}
+
+proc dictlocker {nick channel dirc dire args} {
+global dict
+ set dict(control) 1
+ dict_sendit $nick $channel $dire "Definition adding is now locked"
+}
+
+proc dictunlock {nick channel dirc dire args} {
+global dict
+ set dict(control) 0
+ dict_sendit $nick $channel $dire "Definition adding is now unlocked"
+}
+
+
+proc pub_dictlock {nick uhost handle channel args} {
+dictlock $nick $channel 1 1 $args
+}
+
+proc pub_dictunlock {nick uhost handle channel args} {
+dictunlock $nick $channel 1 1 $args
+}
+
+proc msg_dictlock {nick uhost handle args} {
+dictlock $nick $nick 2 $args
+}
+
+proc dcc_dictlock {handle idx args} {
+dictlock $idx $idx 4 $args
+}
+
+proc msg_dictunlock {nick uhost handle args} {
+dictunlock $nick $nick 2 $args
+}
+
+proc dcc_dictunlock {handle idx args} {
+dickunlock $idx $idx 4 $args
+}
+
+proc dict_define {nick channel dirc dire args} {
+  global dictfile2 dict dictFL
+
+set dictfile [dict.getpath defualt]
+set hand [nick2hand $nick]
+if {$dirc == 4} {set hand $channel}
+set args [lindex $args 0]
+ while {[string index $args [expr [string length $args] -1]] == " "} {
+  set args [string range $args 0 [expr [string length $args] - 2]]}
+
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+
+if {($dict(control) == 1) && ([matchattr $hand o] == 0)} {
+                                                        dict_sendit $nick $channel $dirc "Sorry, This command is currentlly locked in OPs only mode."
+                                                        return 0
+                                                       }
+
+  set theword [lindex $args 0]
+  set thelword [string tolower [lindex $args 0]]
+  set def [lrange $args 1 end]
+
+if {($args == "") || ($def == "")} {
+                                    dict_sendit $nick $channel $dirc "Calling Syntax: [cmdchar]define word definition"
+                                    return 0
+                                   }
+
+ set dupe 0             
+ set dictfileo $dictfile
+ if {($dirc == "4") && ($dict(chan) == "1")} {
+                    set cons [console $idx]
+                    set channel [lindex $cons 0]
+                    set dictfileo $dictfile.$channel
+                    }
+ if {($dirc != "4") && ($dict(chan) == "1")} {
+                    set dictfileo $dictfile.$channel
+                    }
+
+ if {![file exists $dictfileo]} {
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}}
+ if {($dictFL == 1)} {
+    set outmsg {Error: File Locking Time Out}
+    if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+
+                      dict_sendit $nick $channel $dirc "[dict_control $nick $channel $outmsg]"
+                      return 1}
+                                 set dictFL 1
+                                 set out [open $dictfileo "w"]
+                                 set entered [unixtime]
+                                 puts $out "script $entered DiCT DiCT $dict(ver) by David Proper (DrN)"
+                                 close $out
+                                 set dictFL 2
+                                 return 1
+                                }
+ if {[file exists $dictfileo]} {
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}} 
+ if {($dictFL == 1)} {
+                      set outmsg {Error: File Locking Time Out}
+                      if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+                      dict_sendit $nick $channel $dirc "[dict_control $nick $channel $outmsg]"
+                      return 1}
+                               set dictFL 1
+                               set in [open $dictfileo r]
+                               set dupe 0
+                               while {![eof $in]} {
+                               set line [gets $in]
+                               set lword [lindex $line 0]
+if {[string match $thelword [string tolower $lword]]} {
+                                                       set dupe 1
+                                                       break
+                                                      } 
+                                                   }
+                                close $in    
+                                set dictFL 2
+                              }
+
+        if {$dupe == "0"} {
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}}
+ if {($dictFL == 1)} {
+                      set outmsg {Error: File Locking Time Out}
+                      if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+                      dict_sendit $nick $channel $dirc "[dict_control $nick $channel $outmsg]"
+                      return 1}
+
+                           set dictFL 1
+                           set out [open $dictfileo "a+"]
+                           set outline [lindex $args 0]
+                           set entered [unixtime]
+                           append outline \040$entered
+if {($dirc == "4")} {append outline \040$hand
+                    } else {append outline \040$nick}
+                           append outline \040[lrange $args 1 end]
+                           puts $out $outline
+                           close $out
+                           set dictFL 2
+    set outmsg {Definition for "$word" has been stored.}
+    if {$dict(format_defset) != ""} {set outmsg $dict(format_defset)}
+                    regsub -all {\$word} $outmsg $thelword outmsg
+
+                           dict_sendit $nick $channel $dire " [dict_control $nick $channel $outmsg]"
+                          } else {
+    set outmsg {A definition for "$word" allready exists.}
+    if {$dict(format_defexist) != ""} {set outmsg $dict(format_defexist)}
+
+                    regsub -all {\$word} $outmsg $thelword outmsg
+
+                            dict_sendit $nick $channel $dire "[dict_control $nick $channel $outmsg]"
+                           }       
+}
+
+ 
+proc pub_define {nick uhost handle channel args} {
+  set args [lindex $args 0]
+
+dict_define $nick $channel 1 1 [dict_slasher $args]
+} 
+
+proc msg_define {nick uhost handle args} {
+  set args [lindex $args 0]
+dict_define $nick $nick 2 2 [dict_slasher $args]
+}
+
+proc dcc_define {handle idx args} {
+  set args [lindex $args 0]
+  set nick [hand2nick $handle]
+dict_define $idx $handle 4 4 [dict_slasher $args]
+}
+
+
+bind pub - tell pub_tell
+proc pub_tell {nick uhost handle chan args} {
+ global dict
+ if {$dict(usetell) != 1} {return 0}
+ set args [lindex $args 0]
+ set tellnick [lindex $args 0]
+ if {[string tolower [lindex $args 1]] != "about"} {dict_sendit $nick $chan 3 "Calling Syntax: tell NICK about WORD"
+                                                   return 0}
+ if {![onchan $tellnick $chan]} {dict_sendit $nick $chan 3 "I can't tell $tellnick anything becuase they are not on $chan"
+                                 return 0}
+ set args [lrange $args 2 end]
+ set dict(tellnick) $tellnick
+
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_explain $dictfile $nick $chan 1 1 $args
+
+}
+
+bind pubm - "% %" pub_qmark
+proc pub_qmark {nick uhost handle chan args} {
+global dictfile dictNF
+
+if {[string index $args [expr [string length $args] -1]] == "?"} {
+set theword [string range $args 0 [expr [string length $args] -2]]
+set dictNF 2
+
+dict_explain [dict.getpath defualt] $nick $chan 1 1 $theword
+                                                                 }
+}
+
+proc dict_explain {dictfile nick chan dirc dire args} {
+  global dict prefix cmdchar dictFL dictNF
+ set args [lindex $args 0]
+
+ while {[string index $args [expr [string length $args] -1]] == " "} {
+  set args [string range $args 0 [expr [string length $args] - 2]]}
+
+ set theword [lindex $args 0]
+# set thelword [string tolower [lindex $args 0]]
+ set thelword [string tolower $args]
+ set rest [lrange $args 1 end]
+ set found 0
+ regsub -all {\?} $thelword "" thelword
+ regsub -all {\*} $thelword "" thelword
+ regsub -all { } $thelword "_" thelword
+
+if {($thelword == "") && ($dictNF == 2)} {return 1}
+if {($thelword == "") && ($dictNF == 1)} {
+                    dict_sendit $nick $chan $dirc "Calling Syntax: [cmdchar]explain word"
+                    return 0
+                   }
+
+ set dictfileo $dictfile
+
+ if {($dirc == "4") && ($dict(chan) == "1")} {
+                                            set cons [console $nick]
+                                            set chan [lindex $cons 0]
+                                            set dictfileo $dictfile.$chan
+                                            }
+ if {($dict(chan) == "1") && ($dictchan != "1")} {set dictfileo $dictfile.$chan}
+
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}}
+ if {($dictFL == 1)} {
+                      set outmsg {Error: File Locking Time Out}
+                      if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+
+                      dict_sendit $nick $chan $dirc "[dict_control $nick $chan $outmsg]"
+                      return 1}
+
+    set dictFL 1
+    set in [open $dictfileo r]
+    while {![eof $in]} {
+                        set line [gets $in]
+#                    regsub {\(} $line \\( line
+#                    regsub {\)} $line \\) line
+
+                        set dword [lindex $line 0]
+                        set entered [lindex $line 1]
+                        set enteredv [ctime $entered]
+                        set whoset [lindex $line 2]
+                    regsub -all {\"} $line \\" line
+                    regsub -all {\.} $line \\. line
+#                    regsub -all {\;} $line \\; line
+                    regsub -all {\\} $line !SL! line
+                    regsub -all {\<} $line !LT! line
+                    regsub -all {\>} $line !GT! line
+                    regsub -all {\"} $line !QT! line
+                    regsub -all {\(} $line !LP! line
+                    regsub -all {\)} $line !RP! line
+                    regsub -all {\{} $line !LB! line
+                    regsub -all {\}} $line !RB! line
+                    regsub -all {\[} $line !LF! line
+                    regsub -all {\]} $line !RF! line
+                    regsub -all {\;} $line !QL! line
+                    regsub -all {\:} $line !CO! line
+                    regsub -all {\.} $line !PD! line
+
+                        set rdef [lrange $line 3 end]
+#                        if {[string match $thelword [string tolower [lindex $line 0]]]} 
+                   if {[string match $thelword [string tolower $dword]]} {
+                          set ending []
+                          regsub -all {_} $dword " " dword
+
+                          if {$dict(whoset) == 1} {append ending "-=:\002$whoset\002:=-"}
+                          if {$dict(entered) == 1} {append ending " Entered " $enteredv}
+                          set outmsg "\026 $dword \026 \002=\002 $rdef $ending"
+                    if {$dict(format_explain) != ""} {set outmsg $dict(format_explain)}
+
+                    regsub -all {\$word} $outmsg $dword outmsg
+                    regsub -all {\$whoset} $outmsg $whoset outmsg
+                    regsub -all {\$def} $outmsg $rdef outmsg
+                    regsub -all {\$whenset} $outmsg $enteredv outmsg
+                    regsub -all {\$ending} $outmsg $ending outmsg
+
+ if {($dict(tellnick) != "") && ($dict(tellmsg)==1)} {
+                          dict_sendit $dict(tellnick) $chan 2 "[dict_control $dict(tellnick) $chan $outmsg]"
+                                                     } else {
+                          dict_sendit $nick $chan $dirc "[dict_control $nick $chan $outmsg]"
+                                                            }
+                          set dict(tellnick) ""
+                          set found 1
+                                                                    }
+                        }
+    close $in
+    set dictFL 2
+    if {($found == "0") && ($dictNF == 1)} {
+    set outmsg {Sorry, no definition set for "$word".}
+    if {$dict(format_nodef) != ""} {set outmsg $dict(format_nodef)}
+    regsub -all {\$word} $outmsg $thelword outmsg
+    dict_sendit $nick $chan $dire "[dict_control $nick $chan $outmsg]"
+    dict_sendit $nick $chan $dire "Information on alternate databases, [cmdchar]dicthelp list"
+                       }
+  set dictFL 2
+  set dictNF 1
+  return 1
+}
+
+proc pub_explain {nick uhost handle chan args} {
+global dictfiles
+set args [lindex $args 0]
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_explain $dictfile $nick $chan 1 1 $args
+}
+
+proc msg_explain {nick uhost handle args} {
+global dictfiles
+set args [lindex $args 0]
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_explain $dictfile $nick $nick 2 2 $args
+}
+
+proc dcc_explain {handle idx args} {
+global dictfiles
+set args [lindex $args 0]
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_explain $dictfile $idx $idx 4 4 $args
+}
+
+
+### Whodefined ##########################################################
+proc pub_whodef {nick uhost handle chan args} {
+global dictfiles
+ set args [lindex $args 0]
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_whodef $dictfile $nick $chan 1 1 $args
+}
+proc msg_whodef {nick uhost handle args} {
+global dictfiles
+ set args [lindex $args 0]
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_whodef $dictfile $nick $nick 2 2 $dictfile $args
+}
+
+proc dcc_whodef {handle idx args} {
+global dictfiles
+ set args [lindex $args 0]
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+
+dict_whodef $dictfile $idx $idx 4 4 $dictfile $args
+}
+
+
+proc dict_whodef {dictfile nick chan dirc dire args} {
+  global prefix cmdchar dict dictFL
+ set args [lindex $args 0]
+ while {[string index $args [expr [string length $args] -1]] == " "} {
+  set args [string range $args 0 [expr [string length $args] - 2]]}
+
+ set theword [lindex $args 0]
+ set thelword [string tolower [lindex $args 0]]
+ regsub -all { } $thelword "_" thelword
+ set rest [lrange $args 1 end]
+ set found 0
+
+if {($args == "")} {
+                    dict_sendit $nick $chan $dirc "Calling Syntax: [cmdchar]whodef word"
+                    return 0
+                   }
+
+ set dictfileo $dictfile
+ if {($dirc == "4") && ($dict(chan) == "1")} {
+                                            set cons [console $nick]
+                                            set chan [lindex $cons 0]
+                                            set dictfileo $dictfile.$chan
+                                            }
+ if {($dict(chan) == "1") && ($dictchan != "1")} {set dictfileo $dictfile.$chan}
+
+
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}}
+ if {($dictFL == 1)} {
+                      set outmsg {Error: File Locking Time Out}
+                      if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+                      dict_sendit $nick $chan $dirc "[dict_control $nick $channel $outmsg]"
+                      return 1}
+ set dictFL 1
+
+    set in [open $dictfileo r]
+    while {![eof $in]} {
+      set line [gets $in]
+    set dword [lindex $line 0]
+    set entered [lindex $line 1]
+    set enteredv [ctime $entered]
+    set whoset [lindex $line 2]
+    set rdef [lrange $line 3 end]
+    if {[string match $thelword [string tolower [lindex $line 0]]]} {
+    regsub -all {_} $dword " " dword
+
+    set outmsg {\026 $word \026 was defined by $whoset on $whenset}
+    if {$dict(format_whodef) != ""} {set outmsg $dict(format_whodef)}
+
+                    regsub -all {\$word} $outmsg $dword outmsg
+                    regsub -all {\$whoset} $outmsg $whoset outmsg
+                    regsub -all {\$whenset} $outmsg $enteredv outmsg
+
+    dict_sendit $nick $chan $dirc "[dict_control $nick $chan $outmsg]"
+     set found 1
+                                                                    }
+    }
+    close $in
+    set dictFL 2
+    if {$found == "0"} {
+    set outmsg {Sorry, no definition set for "$word".}
+    if {$dict(format_nodef) != ""} {set outmsg $dict(format_nodef)}
+
+                    regsub -all {\$word} $outmsg $dword outmsg
+
+    dict_sendit $nick $chan $dire "[dict_control $nick $chan $outmsg]"
+                       }
+  return 1
+}
+
+
+proc dict_undefine {nick chan dirc dire args} {
+  global dictfile prefix cmdchar dict dictFL
+ set args [lindex $args 0]
+ set args [lindex $args 0]
+ while {[string index $args [expr [string length $args] -1]] == " "} {
+  set args [string range $args 0 [expr [string length $args] - 2]]}
+ regsub -all { } $args "_" args
+
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+  set args [lindex $args 0]
+
+ set theword [lindex $args 0]
+ set thelword [string tolower [lindex $args 0]]
+ set rest [lrange $args 1 end]
+ set ifound 0
+
+
+ set dictfileo $dictfile
+ if {($dirc == "4") && ($dict(chan) == "1")} {
+                    set cons [console $nick]
+                    set chan [lindex $cons 0]
+                    set dictfileo $dictfile.$chan
+                                            }
+  if {[lindex $args 0] != ""} {
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}}
+ if {($dictFL == 1)} {
+                      set outmsg {Error: File Locking Time Out}
+                      if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+                      dict_sendit $nick $chan $dirc "[dict_control $nick $channel $outmsg]"
+                      return 1}
+ set dictFL 1
+
+    set in [open $dictfileo r]
+    set out [open ${dictfileo}.temp w]
+    puts $out "; DiCT $dict(ver) by David Proper (DrN)"
+    puts $out "; Copyright 1997-2001 Radical Computer Systems"
+    while {![eof $in]} {
+                        set found 0
+      set line [gets $in]
+    set dword [lindex $line 0]
+    set rdef [lrange $line 1 end]
+    if {[string match ";" [lindex $line 0 ]]} { set found 2 }
+    if {[string match $thelword [string tolower [lindex $line 0]]]} {
+     set found 1
+     set ifound 1
+      }
+     if {$found == "0" && [string length $line] > 0} { puts $out $line }
+    }
+    close $in
+    close $out
+    exec /bin/mv ${dictfileo}.temp ${dictfileo}
+    set dictFL 2
+    if {$ifound == "0"} {
+                         set outmsg {Sorry, no definition set for "$word".}
+                         if {$dict(format_nodef) != ""} {set outmsg $dict(format_nodef)}
+
+                         regsub -all {\$word} $outmsg $thelword outmsg
+
+                        dict_sendit $nick $chan $dire "[dict_control $nick $chan $outmsg]"
+                       } else {
+    set outmsg {Definition for "$word" has been removed.}
+    if {$dict(format_deldef) != ""} {set outmsg $dict(format_deldef)}
+
+                                regsub -all {\$word} $outmsg $thelword  outmsg
+
+                                dict_sendit $nick $chan $dire "[dict_control $nick $chan $outmsg]"
+                              }
+  } else {
+    dict_sendit $nick $chan $dire "Syntax: ${cmdchar}undefine <word>"
+  }
+  return 1
+}
+
+proc pub_undefine {nick uhost handle channel args} {
+dict_undefine $nick $channel 1 1 $args
+} 
+
+proc msg_undefine {nick uhost handle args} {
+dict_undefine $nick $nick 2 2 $args
+}
+
+proc dcc_undefine {handle idx args} {
+dict_undefine $idx $idx 4 4 $args
+}
+
+
+proc dict_listdef {nick chan dirc dire args} {
+  global dictfile prefix dict
+  global dictFL
+
+ set args [lindex $args 0]
+ set args [lindex $args 0]
+ while {[string index $args [expr [string length $args] -1]] == " "} {
+  set args [string range $args 0 [expr [string length $args] - 2]]}
+
+set dictfile [dict.getpath defualt]
+if {[dict.checktag $args]} {
+         set dictfile [dict.getpath [dict.gettag $args]]
+         set args [dict.cleartag $args]
+                          }
+  set args [lindex $args 0]
+
+if {$args == ""} {
+                  set args "*"
+                  set extrat ""
+                 } else {
+                         set args [string tolower $args]
+                         set extrat "that match $args"
+                        }
+
+
+set deflist []
+set defs 0
+    dict_sendit $nick $chan $dirc "\002DiCT $dict(ver) by David Proper  (DrN)\002"
+    set outmsg {-=: Listing definitions I have in my database $listmatch:}
+    if {$dict(format_listhead) != ""} {set outmsg $dict(format_listhead)}
+    regsub -all {\$listmatch} $outmsg $extrat outmsg
+
+    dict_sendit $nick $chan $dirc "[dict_control $nick $chan $outmsg]"
+
+set dictfileo $dictfile
+ if {($dirc == "4") && ($dict(chan) == "1")} {
+                    set cons [console $nick]
+                    set chan [lindex $cons 0]
+                    set dictfileo $dictfile.$chan
+                                           }
+ if {($dirc != "4") && ($dict(chan) != "1")} {
+                    set dictfileo $dictfile.$chan
+                                           }
+
+ if {($dictFL == 1)} {for {set n 0} {$n < 10} {incr n} {after 500}}
+ if {($dictFL == 1)} {
+                      set outmsg {Error: File Locking Time Out}
+                      if {$dict(format_timeout) != ""} {set outmsg $dict(format_timeout)}
+                      dict_sendit $nick $chan $dirc "[dict_control $nick $channel $outmsg]"
+                      return 1}
+ set dictFL 1
+    set in [open $dictfileo r]
+
+    while {![eof $in]} {
+      set line [gets $in]
+      set dword [lindex $line 0]
+      set rdef [lrange $line 1 end]
+      set comment 0
+#      if {[string match ";" [lindex $dword 0 ]]} { set comment 1 }
+#      if {[lindex $dword 0]!=";"} {set comment =1}
+#      if {[$dword == ";"]} {set comment=1}
+if {([string match $args [string tolower [lindex $dword 0]]]) && $dword != "" && $dword != ";"} { 
+                         append deflist $dword\040
+                         set defs [expr $defs + 1] 
+                        }
+      if {[string length $deflist] > 65} {
+                                           dict_sendit $nick $chan $dirc "$deflist"
+                                          set deflist []
+                                         } 
+                       }
+      close $in
+      set dictFL 2                        
+#    if {[string length $deflist] > 0} {
+                                        dict_sendit $nick $chan $dirc "$deflist"
+                                        set deflist []
+#                                       }
+    set outmsg {-=: End Of List. There were $defcount definitions found.}
+    if {$dict(format_listfoot) != ""} {set outmsg $dict(format_listfoot)}
+    regsub -all {\$defcount} $outmsg $defs outmsg
+    dict_sendit $nick $chan $dirc "[dict_control $nick $chan $outmsg]"
+
+  
+  return 1
+}
+
+proc pub_listdef {nick uhost handle channel args} {
+dict_listdef $nick $channel 1 1 $args
+}
+
+proc msg_listdef {nick uhost handle args} {
+dict_listdef $nick $nick 2 2 $args
+}
+
+proc dcc_listdef {handle idx args} {
+dict_listdef $idx $handle 4 4 $args
+}
+
+
+proc dict.checktag {args} {
+ set args [lindex $args 0]
+ set cpos [lsearch -glob $args "-d"]
+ if {$cpos == -1} {return 0} else {return 1}
+}
+
+proc dict.gettag {args} {
+ set args [lindex $args 0]
+ set cpos [lsearch -glob $args "-d"]
+ set altdict ""
+ if {$cpos != -1} {
+   set args "[lrange $args 0 [expr $cpos - 1]] [lrange $args [expr $cpos + 1] end]"
+   set altdict [string tolower [lindex $args $cpos]]
+   set args "[lrange $args 0 [expr $cpos - 1]] [lrange $args [expr $cpos + 1] end]"
+                  }
+ return $altdict
+}
+
+proc dict.cleartag {args} {
+ set args [lindex $args 0]
+ set cpos [lsearch -glob $args "-d"]
+ if {$cpos != -1} {
+ if {$cpos == 0} {
+   set args "[lrange $args 0 [expr $cpos - 1]][lrange $args [expr $cpos + 1] end]"
+   set args "[lrange $args 0 [expr $cpos - 1]][lrange $args [expr $cpos + 1] end]"
+                 } else {
+   set args "[lrange $args 0 [expr $cpos - 1]] [lrange $args [expr $cpos + 1] end]"
+   set args "[lrange $args 0 [expr $cpos - 1]] [lrange $args [expr $cpos + 1] end]"
+                        }
+                  }
+ return "$args"
+}
+
+proc dict.getpath {altdict} {
+ global dictfiles
+ set totaldict [llength $dictfiles]
+ set dictloop 0
+ set usedictfile [lindex [lindex $dictfiles 0] 1]
+ while {$dictloop < $totaldict} {
+  set dl_data [lindex $dictfiles $dictloop]
+  set dl_trig [lindex $dl_data 0]
+  set dl_path [lindex $dl_data 1]
+  set dl_desc [lrange $dl_data 2 end]
+  if {($altdict == [string tolower $dl_trig])} {set usedictfile $dl_path}
+  incr dictloop
+                               }
+ return $usedictfile
+}
+
+proc pub_resetdict {nick uhost handle channel args} {
+global dictFL
+ set dictFL 2
+} 
+
+proc dict_control {nick chan outmsg} {
+ if {[isnum $nick]} {regsub -all {\$nick} $outmsg [idx2hand $nick] outmsg} else {regsub -all {\$nick} $outmsg $nick outmsg}
+ regsub -all {\$chan} $outmsg $chan outmsg
+ regsub -all {\\001} $outmsg \001 outmsg
+ regsub -all {\\002} $outmsg \002 outmsg
+ regsub -all {\\026} $outmsg \026 outmsg
+ return "$outmsg"
+}
+
+# isnumber taken from alltools.tcl
+proc isnum {string} {
+  if {([string compare $string ""]) && (![regexp \[^0-9\] $string])} then {return 1}
+  return 0
+}
+
+
+return "DiCT $dict(ver) by David Proper (DrN) -=: Loaded :=-"
