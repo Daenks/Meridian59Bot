@@ -1,0 +1,18 @@
+#tracks when people were last seen
+scripts/bseen1.4.2.tcl
+
+#!define and !show 
+scripts/eggdb1.2.tcl
+
+#rss feeds
+scripts/rss-synd.tcl
+
+#google searches (not currently working)
+scripts/incith-google.tcl
+
+#greeter script
+scripts/ent_agreet.tcl
+
+#general responder script
+scripts/mc.respond.tcl
+
